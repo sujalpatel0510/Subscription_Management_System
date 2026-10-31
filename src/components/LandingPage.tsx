@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Layers,
   ArrowRight,
@@ -27,6 +27,9 @@ import {
   Receipt,
   Server,
   Activity,
+  Menu,
+  X,
+  Compass,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { TabId } from './Sidebar';
@@ -40,6 +43,96 @@ export default function LandingPage({ onEnterApp, plans = [] }: LandingPageProps
   const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [activePreviewTab, setActivePreviewTab] = useState<'overview' | 'billing' | 'lifecycle'>('overview');
+
+  // Interactive Glass Navbar & Scroll State
+  const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<'hero' | 'preview' | 'features' | 'pricing' | 'architecture' | 'faq'>('hero');
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      setScrolled(scrollY > 20);
+
+      const winHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (winHeight > 0) {
+        setScrollProgress(Math.min(100, Math.max(0, (scrollY / winHeight) * 100)));
+      }
+
+      // Check sections from bottom to top for accurate scroll tracking
+      const sections = [
+        { id: 'faq', threshold: 280 },
+        { id: 'architecture', threshold: 280 },
+        { id: 'pricing', threshold: 280 },
+        { id: 'features', threshold: 280 },
+        { id: 'preview', threshold: 280 },
+      ] as const;
+
+      let currentFound = false;
+      for (const sec of sections) {
+        const el = document.getElementById(sec.id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= sec.threshold && rect.bottom >= 100) {
+            setActiveSection(sec.id);
+            currentFound = true;
+            break;
+          }
+        }
+      }
+
+      if (!currentFound && scrollY < 400) {
+        setActiveSection('hero');
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navItems = [
+    { id: 'preview', label: 'Live Interface', badge: 'Interactive Preview' },
+    { id: 'features', label: 'Platform Features', badge: '6 Core Engines' },
+    { id: 'pricing', label: 'Pricing Cadence', badge: 'Flexible Plans' },
+    { id: 'architecture', label: 'Database Engine', badge: 'PostgreSQL 18.x' },
+    { id: 'faq', label: 'FAQ', badge: 'Enterprise Specs' },
+  ];
+
+  const scrollToSection = (e: React.MouseEvent, sectionId: string) => {
+    e.preventDefault();
+    setMobileMenuOpen(false);
+    if (sectionId === 'hero') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setActiveSection('hero');
+      return;
+    }
+    const el = document.getElementById(sectionId);
+    if (el) {
+      const yOffset = -75;
+      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+      setActiveSection(sectionId as any);
+    }
+  };
+
+  const getSectionLabel = () => {
+    switch (activeSection) {
+      case 'preview':
+        return `Live Interface (${activePreviewTab === 'overview' ? 'Overview' : activePreviewTab === 'billing' ? 'Billing Engine' : 'Lifecycle'})`;
+      case 'features':
+        return 'Platform Features';
+      case 'pricing':
+        return `Pricing (${billingCycle === 'MONTHLY' ? 'Monthly' : 'Yearly'})`;
+      case 'architecture':
+        return 'Database Architecture';
+      case 'faq':
+        return 'Frequently Asked Questions';
+      default:
+        return 'Brightloop 2.0 Engine';
+    }
+  };
 
   const toggleFaq = (idx: number) => {
     setOpenFaq(openFaq === idx ? null : idx);
@@ -127,52 +220,141 @@ export default function LandingPage({ onEnterApp, plans = [] }: LandingPageProps
 
   return (
     <div className="w-full min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground flex flex-col overflow-x-hidden">
-      {/* 1. TOP MARKETING NAVIGATION */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-md">
-        <div className="w-full max-w-[1400px] mx-auto flex h-16 items-center justify-between px-4 sm:px-8">
-          {/* Brand Logo */}
-          <div
-            onClick={() => onEnterApp('dashboard')}
-            className="flex items-center gap-3 cursor-pointer group"
-          >
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white font-black shadow-md shadow-blue-500/25 group-hover:scale-105 transition-transform">
-              <Sparkles className="h-4.5 w-4.5" />
+      {/* 1. INTERACTIVE FROSTED GLASS TOP NAVIGATION */}
+      <header
+        className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+          scrolled
+            ? 'bg-background/80 dark:bg-card/75 backdrop-blur-2xl border-b border-border/80 shadow-md shadow-black/5 dark:shadow-black/25 py-2.5'
+            : 'bg-background/40 dark:bg-background/30 backdrop-blur-md border-b border-border/40 py-3.5'
+        }`}
+      >
+        <div className="w-full max-w-[1400px] mx-auto flex items-center justify-between px-4 sm:px-8">
+          {/* Brand Logo & Dynamic Context Pill */}
+          <div className="flex items-center gap-4">
+            <div
+              onClick={() => onEnterApp('dashboard')}
+              className="flex items-center gap-3 cursor-pointer group"
+            >
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white font-black shadow-md shadow-blue-500/25 group-hover:scale-105 transition-transform">
+                <Sparkles className="h-4.5 w-4.5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-extrabold text-base tracking-tight text-foreground group-hover:text-primary transition-colors">
+                  Brightloop
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold -mt-1">
+                  Subscription Engine
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-base tracking-tight text-foreground group-hover:text-primary transition-colors">
-                Brightloop
+
+            {/* Dynamic Active Context Pill (changes when user scrolls or switches content) */}
+            <div className="hidden xl:inline-flex items-center gap-2 rounded-full border border-border/80 bg-accent/40 backdrop-blur-md px-3 py-1 text-xs text-muted-foreground">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold -mt-1">
-                Subscription Engine
+              <span className="font-medium">
+                Viewing: <strong className="text-foreground font-semibold">{getSectionLabel()}</strong>
               </span>
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition">Platform Features</a>
-            <a href="#preview" className="hover:text-foreground transition">Live Interface</a>
-            <a href="#architecture" className="hover:text-foreground transition">Database Engine</a>
-            <a href="#pricing" className="hover:text-foreground transition">Pricing Cadence</a>
-            <a href="#faq" className="hover:text-foreground transition">FAQ</a>
+          {/* Center Navigation Links with Active State Indicator */}
+          <nav className="hidden lg:flex items-center gap-1.5 p-1 rounded-full border border-border/50 bg-accent/25 backdrop-blur-md">
+            {navItems.map((item) => {
+              const isActive = activeSection === item.id;
+              return (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  onClick={(e) => scrollToSection(e, item.id)}
+                  className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs transition-all duration-200 ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground font-bold shadow-sm shadow-primary/30 scale-100'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/60 font-semibold'
+                  }`}
+                >
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground/90 animate-pulse" />
+                  )}
+                  <span>{item.label}</span>
+                </a>
+              );
+            })}
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <ThemeToggle />
+
             <button
               onClick={() => onEnterApp('dashboard')}
-              className="flex items-center gap-2 rounded-xl bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90 transition active:scale-95"
+              className="hidden sm:flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90 transition active:scale-95"
             >
               <span>Launch App</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </button>
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden flex items-center justify-center h-9 w-9 rounded-xl border border-border bg-card/60 backdrop-blur-md text-foreground hover:bg-accent transition"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
           </div>
         </div>
+
+        {/* Dynamic Top Reading Progress Line */}
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-transparent">
+          <div
+            className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-400 transition-all duration-150 ease-out"
+            style={{ width: `${scrollProgress}%` }}
+          />
+        </div>
+
+        {/* Mobile Dropdown Menu with Frosted Glass */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-b border-border bg-background/95 dark:bg-card/95 backdrop-blur-2xl p-4 shadow-2xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="px-2 pb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Compass className="h-3.5 w-3.5 text-primary" />
+              <span>Jump to Section</span>
+            </div>
+            {navItems.map((item) => {
+              const isActive = activeSection === item.id;
+              return (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  onClick={(e) => scrollToSection(e, item.id)}
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition ${
+                    isActive
+                      ? 'bg-primary/10 text-primary border border-primary/25 font-bold'
+                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  <span className="text-[10px] text-muted-foreground">{item.badge}</span>
+                </a>
+              );
+            })}
+            <div className="pt-2 border-t border-border">
+              <button
+                onClick={() => onEnterApp('dashboard')}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90 transition"
+              >
+                <span>Launch Application Console</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* 2. FULL-SCREEN HERO SECTION */}
-      <section className="relative w-full pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
+      <section id="hero" className="relative w-full pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 text-center relative z-10">
           {/* Subtitle Pill */}
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary mb-6 animate-in fade-in duration-300">
