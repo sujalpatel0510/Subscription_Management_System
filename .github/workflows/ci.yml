@@ -1,0 +1,55 @@
+name: Brightloop CI/CD & Automated Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Test & Build Production App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run Database Migrations / Push
+        run: npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: 'file:./dev.db'
+
+      - name: Seed Database
+        run: node prisma/seed.js
+        env:
+          DATABASE_URL: 'file:./dev.db'
+          JWT_SECRET: 'brightloop-super-secure-production-jwt-token-key-2026'
+
+      - name: Validate TypeScript Definitions
+        run: npx tsc --noEmit
+
+      - name: Execute 28 Automated Acceptance Tests
+        run: npm test
+        env:
+          DATABASE_URL: 'file:./dev.db'
+          JWT_SECRET: 'brightloop-super-secure-production-jwt-token-key-2026'
+
+      - name: Build Next.js Production Bundle
+        run: npm run build
+        env:
+          DATABASE_URL: 'file:./dev.db'
+          JWT_SECRET: 'brightloop-super-secure-production-jwt-token-key-2026'
+          NODE_ENV: 'production'
