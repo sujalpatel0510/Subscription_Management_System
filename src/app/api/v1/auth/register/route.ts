@@ -28,32 +28,60 @@ export async function POST(req: NextRequest) {
     });
 
     if (existing) {
-      return errorResponse('An account with this email address already exists.', 409);
+      return errorResponse('An account with this email address already exists. Please log in.', 409);
     }
 
     const passwordHash = await hashPassword(password);
 
-    // Public self-registration creates CUSTOMER role and corresponding CustomerAccount
-    const user = await prisma.user.create({
-      data: {
-        emailNormalized,
-        passwordHash,
-        name: legalName,
-        role: 'CUSTOMER',
-        status: 'ACTIVE',
-        customerAccount: {
-          create: {
-            legalName,
-            billingEmail: emailNormalized,
-            billingAddress: billingAddress || '',
-            currency,
-          },
-        },
-      },
-      include: {
-        customerAccount: true,
+    // Check if an unlinked CustomerAccount already exists with this email
+    const existingCustomer = await prisma.customerAccount.findFirst({
+      where: {
+        billingEmail: emailNormalized,
+        userId: null,
       },
     });
+
+    let user;
+    if (existingCustomer) {
+      // Connect newly registered user to existing commercial customer account
+      user = await prisma.user.create({
+        data: {
+          emailNormalized,
+          passwordHash,
+          name: legalName,
+          role: 'CUSTOMER',
+          status: 'ACTIVE',
+          customerAccount: {
+            connect: { id: existingCustomer.id },
+          },
+        },
+        include: {
+          customerAccount: true,
+        },
+      });
+    } else {
+      // Create new user and new CustomerAccount record atomically
+      user = await prisma.user.create({
+        data: {
+          emailNormalized,
+          passwordHash,
+          name: legalName,
+          role: 'CUSTOMER',
+          status: 'ACTIVE',
+          customerAccount: {
+            create: {
+              legalName,
+              billingEmail: emailNormalized,
+              billingAddress: billingAddress || '',
+              currency,
+            },
+          },
+        },
+        include: {
+          customerAccount: true,
+        },
+      });
+    }
 
     // Non-blocking notification
     try {

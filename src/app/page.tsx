@@ -1547,7 +1547,7 @@ export default function SMSApplication() {
                                   Send
                                 </button>
                               )}
-                              {!isCustomer && inv.outstandingBalance > 0 && inv.status !== 'CANCELLED' && (
+                              {inv.outstandingBalance > 0 && inv.status !== 'CANCELLED' && (
                                 <button
                                   onClick={() => {
                                     setPaymentForm({
@@ -1555,13 +1555,13 @@ export default function SMSApplication() {
                                       amount: inv.outstandingBalance.toString(),
                                       method: 'CREDIT_CARD',
                                       reference: '',
-                                      note: '',
+                                      note: isCustomer ? 'Customer portal online payment' : '',
                                     });
                                     setShowPaymentModal(true);
                                   }}
                                   className="rounded-lg bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-700 transition"
                                 >
-                                  Pay
+                                  {isCustomer ? 'Pay Invoice' : 'Pay'}
                                 </button>
                               )}
                               {!isCustomer && inv.status !== 'PAID' && inv.status !== 'CANCELLED' && (
@@ -2521,6 +2521,25 @@ export default function SMSApplication() {
                   <Printer className="h-4 w-4" />
                   <span>Print Invoice</span>
                 </button>
+                {selectedInvoice.outstandingBalance > 0 && selectedInvoice.status !== 'CANCELLED' && (
+                  <button
+                    onClick={() => {
+                      setPaymentForm({
+                        invoiceId: selectedInvoice.id,
+                        amount: selectedInvoice.outstandingBalance.toString(),
+                        method: 'CREDIT_CARD',
+                        reference: '',
+                        note: isCustomer ? 'Customer portal online payment' : '',
+                      });
+                      setSelectedInvoice(null);
+                      setShowPaymentModal(true);
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    <span>Pay Now (${selectedInvoice.outstandingBalance.toFixed(2)})</span>
+                  </button>
+                )}
                 {!isCustomer && selectedInvoice.status === 'DRAFT' && (
                   <button
                     onClick={() => handleConfirmInvoice(selectedInvoice.id)}
@@ -3612,11 +3631,31 @@ export default function SMSApplication() {
                 <label className="block font-semibold text-foreground mb-1">Portal Password (Optional)</label>
                 <input
                   type="password"
-                  placeholder="Leave empty or min 9 chars"
+                  placeholder="Leave empty or min 9 chars (Upper, lower & special char)"
                   value={customerForm.password}
                   onChange={(e) => setCustomerForm({ ...customerForm, password: e.target.value })}
                   className="w-full rounded-lg border border-input bg-background p-2 text-xs text-foreground focus:border-primary focus:outline-none"
                 />
+                {customerForm.password && (
+                  <div className="mt-1.5 space-y-1 text-[11px]">
+                    <div className={`flex items-center gap-1.5 ${customerForm.password.length >= 9 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                      <span>{customerForm.password.length >= 9 ? '✓' : '○'}</span>
+                      <span>More than 8 characters ({customerForm.password.length} chars)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${/[A-Z]/.test(customerForm.password) ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                      <span>{/[A-Z]/.test(customerForm.password) ? '✓' : '○'}</span>
+                      <span>At least one uppercase letter</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${/[a-z]/.test(customerForm.password) ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                      <span>{/[a-z]/.test(customerForm.password) ? '✓' : '○'}</span>
+                      <span>At least one lowercase letter</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(customerForm.password) ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                      <span>{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(customerForm.password) ? '✓' : '○'}</span>
+                      <span>At least one special character</span>
+                    </div>
+                  </div>
+                )}
                 <p className="text-[10px] text-muted-foreground mt-1">
                   If set, enables self-service customer portal login with this email.
                 </p>

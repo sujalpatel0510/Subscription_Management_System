@@ -49,8 +49,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const authUser = await getAuthenticatedUser(req);
-    if (!authUser || !hasRole(authUser, ['ADMIN', 'STAFF'])) {
-      return errorResponse('Forbidden: Only staff and admin can record payments', 403);
+    if (!authUser) {
+      return errorResponse('Unauthorized: Please log in', 401);
     }
 
     const body = await req.json();
@@ -68,6 +68,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (!invoice) return errorResponse('Invoice not found', 404);
+
+    // Customer can pay their own invoices; staff/admin can record for any
+    if (authUser.role === 'CUSTOMER' && authUser.customerAccountId !== invoice.customerId) {
+      return errorResponse('Forbidden: You can only pay invoices issued to your account', 403);
+    }
+
     if (invoice.status === 'CANCELLED') {
       return errorResponse('Cannot record payment against a cancelled invoice.', 400);
     }
