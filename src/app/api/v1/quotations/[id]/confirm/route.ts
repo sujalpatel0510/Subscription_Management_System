@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest } from 'next/server';
 import { addYears, isBefore } from 'date-fns';
 import prisma from '@/lib/prisma';

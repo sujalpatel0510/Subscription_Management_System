@@ -141,13 +141,20 @@ async function runAcceptanceTests() {
       const periodStart = new Date('2026-11-01T00:00:00.000Z');
       const periodEnd = new Date('2026-11-30T23:59:59.999Z');
 
-      await prisma.invoice.deleteMany({
+      const existingInvoices = await prisma.invoice.findMany({
         where: {
           subscriptionId: sub.id,
           periodStart,
           periodEnd,
         },
+        select: { id: true },
       });
+      if (existingInvoices.length > 0) {
+        const ids = existingInvoices.map((i) => i.id);
+        await prisma.paymentAllocation.deleteMany({ where: { invoiceId: { in: ids } } });
+        await prisma.invoiceLine.deleteMany({ where: { invoiceId: { in: ids } } });
+        await prisma.invoice.deleteMany({ where: { id: { in: ids } } });
+      }
 
       await prisma.invoice.create({
         data: {

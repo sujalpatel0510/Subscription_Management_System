@@ -150,7 +150,7 @@ export default function SMSApplication() {
   const [paymentForm, setPaymentForm] = useState({ invoiceId: '', amount: '', method: 'CREDIT_CARD', reference: '', note: '' });
 
   const [showNewQuoteModal, setShowNewQuoteModal] = useState(false);
-  const [newQuoteForm, setNewQuoteForm] = useState({ customerId: '', planId: '', productId: '', variantId: '', quantity: 1, discountCode: '' });
+  const [newQuoteForm, setNewQuoteForm] = useState({ customerId: '', planId: '', productId: '', variantId: '', quantity: 1, discountCode: '', autoActivate: true });
 
   const [showNewProductModal, setShowNewProductModal] = useState(false);
   const [productForm, setProductForm] = useState({ name: '', type: 'Software', salesPrice: '', costPrice: '', notes: '', variantName: 'Brand/Edition', variantValue: '', variantDelta: '' });
@@ -299,7 +299,14 @@ export default function SMSApplication() {
   const refreshAllData = async (user = currentUser) => {
     try {
       const get = async (url: string) => {
-        const r = await fetch(url);
+        const bustUrl = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+        const r = await fetch(bustUrl, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        });
         return r.json();
       };
 
@@ -528,8 +535,21 @@ export default function SMSApplication() {
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`Quotation #${data.data.quotation.quoteNumber} created!`);
+        if (newQuoteForm.autoActivate && data.data?.quotation?.id) {
+          const confRes = await fetch(`/api/v1/quotations/${data.data.quotation.id}/confirm`, { method: 'POST' });
+          const confData = await confRes.json();
+          if (confData.success) {
+            showToast(`Subscription activated successfully from quotation #${data.data.quotation.quoteNumber}!`);
+          } else {
+            showToast(`Quotation #${data.data.quotation.quoteNumber} created! (Activation error: ${confData.error})`, 'warning');
+          }
+        } else {
+          showToast(`Quotation #${data.data.quotation.quoteNumber} created!`);
+        }
         setShowNewQuoteModal(false);
+        if (data.data?.quotation) {
+          setQuotations((prev) => [data.data.quotation, ...prev.filter((q) => q.id !== data.data.quotation.id)]);
+        }
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to create quotation', 'error');
@@ -572,6 +592,9 @@ export default function SMSApplication() {
       if (data.success) {
         showToast(`Product "${productForm.name}" created!`);
         setShowNewProductModal(false);
+        if (data.data?.product) {
+          setProducts((prev) => [data.data.product, ...prev.filter((p) => p.id !== data.data.product.id)]);
+        }
         setProductForm({ name: '', type: 'Software', salesPrice: '', costPrice: '', notes: '', variantName: 'Brand/Edition', variantValue: '', variantDelta: '' });
         await refreshAllData();
       } else {
@@ -607,6 +630,9 @@ export default function SMSApplication() {
       if (data.success) {
         showToast(`Plan "${planForm.name}" created!`);
         setShowNewPlanModal(false);
+        if (data.data?.plan) {
+          setPlans((prev) => [data.data.plan, ...prev.filter((p) => p.id !== data.data.plan.id)]);
+        }
         setPlanForm({ name: '', price: '', intervalUnit: 'MONTHLY', minQuantity: 1, allowPause: true, allowEarlyClose: true, allowRenew: true, autoClose: false });
         await refreshAllData();
       } else {
@@ -645,6 +671,9 @@ export default function SMSApplication() {
       if (data.success) {
         showToast(`Discount Rule ${data.data.discountRule.code} created!`);
         setShowNewDiscountModal(false);
+        if (data.data?.discountRule) {
+          setDiscountRules((prev) => [data.data.discountRule, ...prev.filter((d) => d.id !== data.data.discountRule.id)]);
+        }
         setDiscountForm({
           code: '',
           name: '',
@@ -679,7 +708,8 @@ export default function SMSApplication() {
       const res = await fetch(`/api/v1/plans/${planId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        showToast(data.data.message || `Plan "${planName}" processed.`, 'success');
+        showToast(data.data?.message || `Plan "${planName}" processed.`, 'success');
+        setPlans((prev) => prev.filter((p) => p.id !== planId));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to delete plan', 'error');
@@ -700,6 +730,7 @@ export default function SMSApplication() {
       const data = await res.json();
       if (data.success) {
         showToast(`Product "${productName}" deleted successfully.`, 'success');
+        setProducts((prev) => prev.filter((p) => p.id !== productId));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to delete product', 'error');
@@ -720,6 +751,7 @@ export default function SMSApplication() {
       const data = await res.json();
       if (data.success) {
         showToast(`Customer account "${legalName}" removed.`, 'success');
+        setCustomers((prev) => prev.filter((c) => c.id !== customerId));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to delete customer', 'error');
@@ -740,6 +772,7 @@ export default function SMSApplication() {
       const data = await res.json();
       if (data.success) {
         showToast(`Tax rule "${taxName}" deleted.`, 'success');
+        setTaxRules((prev) => prev.filter((t) => t.id !== taxId));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to delete tax rule', 'error');
@@ -760,6 +793,7 @@ export default function SMSApplication() {
       const data = await res.json();
       if (data.success) {
         showToast(`Discount rule "${ruleCode}" deleted.`, 'success');
+        setDiscountRules((prev) => prev.filter((d) => d.id !== ruleId));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to delete discount rule', 'error');
@@ -779,7 +813,8 @@ export default function SMSApplication() {
       const res = await fetch(`/api/v1/subscriptions/${subId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        showToast(data.data.message || `Subscription ${subNumber} processed.`, 'success');
+        showToast(data.data?.message || `Subscription ${subNumber} processed.`, 'success');
+        setSubscriptions((prev) => prev.filter((s) => s.id !== subId));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to delete subscription', 'error');
@@ -800,6 +835,7 @@ export default function SMSApplication() {
       const data = await res.json();
       if (data.success) {
         showToast(`Invoice ${invNumber} deleted successfully.`, 'success');
+        setInvoices((prev) => prev.filter((i) => i.id !== invId));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to delete invoice', 'error');
@@ -824,6 +860,7 @@ export default function SMSApplication() {
       const data = await res.json();
       if (data.success) {
         showToast(`Quotation ${quoteNumber} cancelled.`, 'info');
+        setQuotations((prev) => prev.map((q) => q.id === quoteId ? { ...q, status: 'CANCELLED' } : q));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to cancel quotation', 'error');
@@ -844,6 +881,7 @@ export default function SMSApplication() {
       const data = await res.json();
       if (data.success) {
         showToast(`Quotation ${quoteNumber} deleted.`, 'success');
+        setQuotations((prev) => prev.filter((q) => q.id !== quoteId));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to delete quotation', 'error');
@@ -864,6 +902,7 @@ export default function SMSApplication() {
       const data = await res.json();
       if (data.success) {
         showToast(`Payment ${paymentRef} record deleted.`, 'success');
+        setPayments((prev) => prev.filter((p) => p.id !== paymentId));
         await refreshAllData();
       } else {
         showToast(data.error || 'Failed to delete payment', 'error');
@@ -925,6 +964,9 @@ export default function SMSApplication() {
       if (data.success) {
         showToast(`Customer account for "${customerForm.legalName}" created successfully!`);
         setShowNewCustomerModal(false);
+        if (data.data?.customer) {
+          setCustomers((prev) => [data.data.customer, ...prev.filter((c) => c.id !== data.data.customer.id)]);
+        }
         setCustomerForm({
           legalName: '',
           billingEmail: '',
@@ -1322,7 +1364,7 @@ export default function SMSApplication() {
                     className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition"
                   >
                     <Plus className="h-4 w-4" />
-                    <span>Create via Quotation</span>
+                    <span>New Subscription</span>
                   </button>
                 )}
               </div>
@@ -2853,6 +2895,19 @@ export default function SMSApplication() {
                 </div>
               </div>
 
+              <div className="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-accent/40 border border-border">
+                <input
+                  type="checkbox"
+                  id="autoActivateCheck"
+                  checked={newQuoteForm.autoActivate}
+                  onChange={(e) => setNewQuoteForm({ ...newQuoteForm, autoActivate: e.target.checked })}
+                  className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                />
+                <label htmlFor="autoActivateCheck" className="text-xs font-semibold text-foreground cursor-pointer select-none">
+                  Activate as live Subscription immediately (Skip draft proposal)
+                </label>
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-border">
                 <button
                   type="button"
@@ -2866,7 +2921,7 @@ export default function SMSApplication() {
                   disabled={actionLoading}
                   className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
                 >
-                  {actionLoading ? 'Creating...' : 'Issue Quotation'}
+                  {actionLoading ? 'Creating...' : newQuoteForm.autoActivate ? 'Create & Activate Subscription' : 'Issue Quotation'}
                 </button>
               </div>
             </form>

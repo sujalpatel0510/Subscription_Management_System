@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
