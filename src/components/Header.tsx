@@ -8,6 +8,7 @@ import {
   Play,
   Plus,
   FileDown,
+  FileText,
   UserPlus,
   Shield,
   UserCheck,
@@ -207,16 +208,15 @@ export default function Header({
           </div>
         )}
 
-        {/* Export CSV Direct Link */}
+        {/* Export Detailed Report in PDF */}
         <a
-          href="/api/v1/reports/export?entity=invoices"
+          href="/api/v1/reports/export"
           target="_blank"
-          download
-          title="Export Invoices to CSV"
+          title="Export Detailed Financial & Subscription Report in PDF"
           className="hidden sm:inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-xs font-semibold text-foreground shadow-sm hover:bg-accent transition"
         >
-          <FileDown className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="hidden md:inline">Export</span>
+          <FileText className="h-3.5 w-3.5 text-primary" />
+          <span className="hidden md:inline">Export PDF</span>
         </a>
 
         {/* Notifications Dropdown */}

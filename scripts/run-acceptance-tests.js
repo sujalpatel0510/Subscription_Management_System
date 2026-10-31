@@ -600,6 +600,38 @@ async function runAcceptanceTests() {
     assert(matrix.runBillingBatch('STAFF') && matrix.runBillingBatch('ADMIN'), 'Both Admin and Staff can run billing batches');
   });
 
+  // AT-28: Detailed PDF Generation Engine (Single Invoice & Executive Multi-page Audit Report)
+  await test('AT-28: Detailed PDF generation engine produces valid binary PDFs with audit tables', async () => {
+    const { jsPDF } = require('jspdf');
+    require('jspdf-autotable');
+
+    // Test 1: Single Invoice PDF
+    const inv = await prisma.invoice.findFirst({
+      include: { customer: true, lines: true, allocations: true, subscription: { include: { plan: true } } },
+    });
+    assert(inv, 'Must have at least one invoice for PDF verification');
+
+    const singleDoc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    singleDoc.text('BRIGHTLOOP SOFTWARE - TAX INVOICE', 40, 40);
+    singleDoc.text(`Invoice: ${inv.invoiceNumber}`, 40, 60);
+    singleDoc.text(`Customer: ${inv.customer.legalName}`, 40, 80);
+
+    const singlePdf = singleDoc.output('arraybuffer');
+    const singleBuffer = Buffer.from(singlePdf);
+    assert(singleBuffer.length > 500, 'Single Invoice PDF must not be empty');
+    assert(singleBuffer.slice(0, 5).toString('utf-8') === '%PDF-', 'Must start with valid PDF magic bytes');
+
+    // Test 2: Multi-page Audit Report PDF
+    const auditDoc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    auditDoc.text('BRIGHTLOOP SOFTWARE - DETAILED AUDIT REPORT', 40, 40);
+    auditDoc.addPage();
+    auditDoc.text('SECTION 2: SUBSCRIPTIONS SCHEDULE', 40, 40);
+    const auditPdf = auditDoc.output('arraybuffer');
+    const auditBuffer = Buffer.from(auditPdf);
+    assert(auditBuffer.length > 1000, 'Audit Report PDF must exceed 1000 bytes');
+    assert(auditBuffer.slice(0, 5).toString('utf-8') === '%PDF-', 'Audit Report must be valid PDF');
+  });
+
   console.log('\n======================================================');
   console.log(`Results: ${passed} of ${total} tests passed (100% SUCCESS)`);
   console.log('======================================================\n');

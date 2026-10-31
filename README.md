@@ -234,7 +234,7 @@ The schema adheres strictly to **PRD Section 7**, establishing relational integr
   * Yearly: `Amount / 12`
 * **ARR (Annual Recurring Revenue)**: `MRR * 12`.
 * **Overdue Aging Analysis**: Groups past-due invoices into standard 1–30, 31–60, 61–90, and 90+ day buckets.
-* **One-Click CSV Export**: Downloadable raw exports for Invoices, Subscriptions, and Payments.
+* **One-Click Detailed PDF Export**: Downloadable executive multi-page audit report with KPI summaries, Invoices table, Subscriptions schedule, and Payments reconciliation, plus single-click letterhead Tax Invoices in PDF format.
 
 ---
 
@@ -244,7 +244,7 @@ The web interface is built with Next.js 14, Tailwind CSS, and Lucide icons for h
 
 1. **Top Navigation & Persona Switcher**:
    * Switch between **Admin**, **Staff**, and **Customer** in one click without logging out.
-   * Dedicated active user badge, quick CSV export button, and direct theme styling.
+   * Dedicated active user badge, quick PDF export button, and direct theme styling.
 2. **Tabbed Navigation Interface**:
    * 📊 **Dashboard**: High-level financial KPIs (MRR, ARR, Active Subscriptions, Overdue AR, Cash Collected, and Aging buckets).
    * 📝 **Quotations**: Full quotation table with "New Quotation" modal (supports dynamic product & variant selection with live total calculation) and "Confirm" action.
@@ -372,7 +372,7 @@ All REST endpoints reside under `/api/v1/*` and return standard JSON responses:
 
 ### 9. Finance Reports & Audits
 * `GET /api/v1/reports/overview` — Fetch MRR, ARR, collections, and AR aging buckets
-* `GET /api/v1/reports/export?entity=invoices` — Download CSV export (`invoices`, `subscriptions`, `payments`)
+* `GET /api/v1/reports/export` — Download Detailed Financial, Subscription & Payment Audit Report PDF (or `?invoiceId=<id>` for single Tax Invoice PDF)
 * `GET /api/v1/audit-logs` — Query append-only audit trail
 
 ---

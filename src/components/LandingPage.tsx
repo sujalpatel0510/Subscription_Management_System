@@ -515,7 +515,7 @@ export default function LandingPage({ onEnterApp, plans = [] }: LandingPageProps
               </div>
               <h3 className="text-base font-bold text-foreground">AR Aging & Cashflow Intelligence</h3>
               <p className="text-xs text-muted-foreground mt-2.5 leading-relaxed">
-                Live Recharts visual trends: MRR growth curves, subscription health donut, and AR aging buckets (&lt;30d, 30-60d, 60-90d, 90d+) with 1-click CSV data export.
+                Live Recharts visual trends: MRR growth curves, subscription health donut, and AR aging buckets (&lt;30d, 30-60d, 60-90d, 90d+) with 1-click detailed PDF audit & invoice export.
               </p>
             </div>
 

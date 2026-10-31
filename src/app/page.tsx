@@ -1463,16 +1463,26 @@ export default function SMSApplication() {
                     Immutable snapshots of products, variants, taxes, and applied discounts.
                   </p>
                 </div>
-                {!isCustomer && (
-                  <button
-                    onClick={handleTriggerBilling}
-                    disabled={actionLoading}
-                    className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition disabled:opacity-50"
+                <div className="flex items-center gap-2">
+                  <a
+                    href="/api/v1/reports/export"
+                    target="_blank"
+                    className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground shadow-sm hover:bg-accent transition"
                   >
-                    <Play className="h-4 w-4 fill-current" />
-                    <span>Run Billing Day Batch</span>
-                  </button>
-                )}
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span>{isCustomer ? 'Export Statement PDF' : 'Export Detailed PDF'}</span>
+                  </a>
+                  {!isCustomer && (
+                    <button
+                      onClick={handleTriggerBilling}
+                      disabled={actionLoading}
+                      className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition disabled:opacity-50"
+                    >
+                      <Play className="h-4 w-4 fill-current" />
+                      <span>Run Billing Day Batch</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Invoices Table */}
@@ -2178,20 +2188,12 @@ export default function SMSApplication() {
                 </div>
                 <div className="flex items-center gap-2">
                   <a
-                    href="/api/v1/reports/export?entity=invoices"
+                    href="/api/v1/reports/export"
                     target="_blank"
                     className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-accent transition"
                   >
-                    <FileDown className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>Invoices CSV</span>
-                  </a>
-                  <a
-                    href="/api/v1/reports/export?entity=subscriptions"
-                    target="_blank"
-                    className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-accent transition"
-                  >
-                    <FileDown className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>Subs CSV</span>
+                    <FileText className="h-3.5 w-3.5 text-primary" />
+                    <span>Export Audit PDF</span>
                   </a>
                 </div>
               </div>
@@ -2521,6 +2523,14 @@ export default function SMSApplication() {
                   <Printer className="h-4 w-4" />
                   <span>Print Invoice</span>
                 </button>
+                <a
+                  href={`/api/v1/reports/export?invoiceId=${selectedInvoice.id}&download=true`}
+                  target="_blank"
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent transition"
+                >
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span>Download PDF</span>
+                </a>
                 {selectedInvoice.outstandingBalance > 0 && selectedInvoice.status !== 'CANCELLED' && (
                   <button
                     onClick={() => {
