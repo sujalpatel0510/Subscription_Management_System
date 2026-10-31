@@ -663,6 +663,7 @@ export default function SMSApplication() {
       <HeaderNavbar
         currentUser={currentUser}
         onSwitchUser={switchUser}
+        customers={customers}
         onOpenSignUp={() => setShowSignUpModal(true)}
         onOpenForgot={() => setShowForgotModal(true)}
       />
