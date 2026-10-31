@@ -10,6 +10,7 @@ export async function GET(
 ) {
   const plan = await prisma.plan.findUnique({
     where: { id: params.id },
+    include: { subscriptions: true, quotations: true },
   });
 
   if (!plan) return errorResponse('Plan not found', 404);
@@ -60,5 +61,78 @@ export async function PATCH(
     return successResponse({ plan: updated });
   } catch (err: any) {
     return errorResponse(err.message || 'Failed to update plan', 500);
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser || authUser.role !== 'ADMIN') {
+      return errorResponse('Forbidden: Only admin can delete plans', 403);
+    }
+
+    const existing = await prisma.plan.findUnique({
+      where: { id: params.id },
+      include: {
+        _count: {
+          select: { subscriptions: true, quotations: true },
+        },
+      },
+    });
+
+    if (!existing) return errorResponse('Plan not found', 404);
+
+    if (existing._count.subscriptions > 0) {
+      // If plan has active or historical subscriptions, archive it instead of hard-failing
+      const archived = await prisma.plan.update({
+        where: { id: params.id },
+        data: { status: 'INACTIVE' },
+      });
+
+      await logAuditEvent({
+        actorUserId: authUser.userId,
+        action: 'PLAN_ARCHIVED',
+        entityType: 'Plan',
+        entityId: existing.id,
+        beforeJson: existing,
+        afterJson: archived,
+      });
+
+      return successResponse({
+        message: 'Plan has associated subscriptions. It has been deactivated (INACTIVE).',
+        plan: archived,
+        archived: true,
+      });
+    }
+
+    await prisma.quotationTemplate.updateMany({
+      where: { planId: params.id },
+      data: { planId: null },
+    });
+
+    await prisma.quotation.updateMany({
+      where: { planId: params.id },
+      data: { planId: null },
+    });
+
+    const deleted = await prisma.plan.delete({
+      where: { id: params.id },
+    });
+
+    await logAuditEvent({
+      actorUserId: authUser.userId,
+      action: 'PLAN_DELETED',
+      entityType: 'Plan',
+      entityId: deleted.id,
+      beforeJson: existing,
+      afterJson: null,
+    });
+
+    return successResponse({ message: 'Plan deleted successfully', plan: deleted });
+  } catch (err: any) {
+    return errorResponse(err.message || 'Failed to delete plan', 500);
   }
 }

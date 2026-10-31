@@ -5,14 +5,18 @@ import { successResponse, errorResponse } from '@/lib/api-response';
 
 export async function GET(req: NextRequest) {
   const authUser = await getAuthenticatedUser(req);
-  if (!authUser || !hasRole(authUser, ['ADMIN', 'STAFF'])) {
-    return errorResponse('Forbidden: Internal access only', 403);
+  if (!authUser) {
+    return errorResponse('Unauthorized', 401);
   }
 
   const { searchParams } = new URL(req.url);
   const fromDate = searchParams.get('from') ? new Date(searchParams.get('from')!) : null;
   const toDate = searchParams.get('to') ? new Date(searchParams.get('to')!) : null;
-  const customerId = searchParams.get('customerId') || undefined;
+  
+  // If customer role, strictly lock customerId to their own customerAccountId (AT-04 isolation)
+  const customerId = authUser.role === 'CUSTOMER'
+    ? (authUser.customerAccountId || undefined)
+    : (searchParams.get('customerId') || undefined);
 
   const now = new Date();
 

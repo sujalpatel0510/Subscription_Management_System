@@ -37,7 +37,10 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const existing = await prisma.product.findUnique({ where: { id: params.id } });
+    const existing = await prisma.product.findUnique({
+      where: { id: params.id },
+      include: { variants: true },
+    });
     if (!existing) return errorResponse('Product not found', 404);
 
     const updated = await prisma.product.update({
@@ -65,5 +68,50 @@ export async function PATCH(
     return successResponse({ product: updated });
   } catch (err: any) {
     return errorResponse(err.message || 'Failed to update product', 500);
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser || authUser.role !== 'ADMIN') {
+      return errorResponse('Forbidden: Only admin can delete products', 403);
+    }
+
+    const existing = await prisma.product.findUnique({
+      where: { id: params.id },
+      include: { variants: true },
+    });
+
+    if (!existing) return errorResponse('Product not found', 404);
+
+    // Delete variants first, then product
+    await prisma.productVariant.deleteMany({
+      where: { productId: params.id },
+    });
+
+    await prisma.discountEligibility.deleteMany({
+      where: { productId: params.id },
+    });
+
+    const deleted = await prisma.product.delete({
+      where: { id: params.id },
+    });
+
+    await logAuditEvent({
+      actorUserId: authUser.userId,
+      action: 'PRODUCT_DELETED',
+      entityType: 'Product',
+      entityId: deleted.id,
+      beforeJson: existing,
+      afterJson: null,
+    });
+
+    return successResponse({ message: 'Product deleted successfully', product: deleted });
+  } catch (err: any) {
+    return errorResponse(err.message || 'Failed to delete product', 500);
   }
 }

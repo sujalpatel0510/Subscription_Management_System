@@ -5,8 +5,10 @@ import { successResponse, errorResponse } from '@/lib/api-response';
 
 export async function GET(req: NextRequest) {
   const authUser = await getAuthenticatedUser(req);
-  if (!authUser || !hasRole(authUser, ['ADMIN', 'STAFF'])) {
-    return errorResponse('Forbidden: Internal access only', 403);
+  if (!authUser) return errorResponse('Unauthorized', 401);
+
+  if (authUser.role === 'CUSTOMER') {
+    return successResponse({ templates: [] });
   }
 
   const templates = await prisma.quotationTemplate.findMany({

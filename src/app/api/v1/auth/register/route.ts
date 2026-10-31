@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, password, billingAddress, currency = 'USD' } = body;
-    const legalName = body.legalName || body.name || body.companyName;
+    const legalName = (body.legalName || body.name || body.companyName || '').trim();
 
     if (!email || !password || !legalName) {
       return errorResponse('Email, password, and business legal name are required.', 400);
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await hashPassword(password);
 
-    // Public self-registration only allows CUSTOMER role
+    // Public self-registration creates CUSTOMER role and corresponding CustomerAccount
     const user = await prisma.user.create({
       data: {
         emailNormalized,
@@ -55,24 +55,34 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await prisma.notification.create({
-      data: {
-        type: 'WELCOME',
-        recipient: emailNormalized,
-        subject: 'Welcome to Brightloop Software',
-        body: `Welcome ${legalName}! Your customer self-service portal is active.`,
-        relatedEntity: 'User',
-        relatedId: user.id,
-      },
-    });
+    // Non-blocking notification
+    try {
+      await prisma.notification.create({
+        data: {
+          type: 'WELCOME',
+          recipient: emailNormalized,
+          subject: 'Welcome to Brightloop Software',
+          body: `Welcome ${legalName}! Your customer self-service portal is active.`,
+          relatedEntity: 'User',
+          relatedId: user.id,
+        },
+      });
+    } catch (notifErr) {
+      console.warn('Welcome notification dispatch warning:', notifErr);
+    }
 
-    await logAuditEvent({
-      actorUserId: user.id,
-      action: 'USER_REGISTERED',
-      entityType: 'User',
-      entityId: user.id,
-      afterJson: { email: emailNormalized, role: 'CUSTOMER' },
-    });
+    // Non-blocking audit log
+    try {
+      await logAuditEvent({
+        actorUserId: user.id,
+        action: 'USER_REGISTERED',
+        entityType: 'User',
+        entityId: user.id,
+        afterJson: { email: emailNormalized, role: 'CUSTOMER' },
+      });
+    } catch (auditErr) {
+      console.warn('Audit log dispatch warning:', auditErr);
+    }
 
     const token = signAuthToken({
       userId: user.id,

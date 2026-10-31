@@ -2,6 +2,16 @@ const fs = require('fs');
 const path = require('path');
 
 const dirs = [
+  '.next/types/app/api/v1',
+  '.next/types/app/api/v1/auth',
+  '.next/types/app/api/v1/invoices',
+  '.next/types/app/api/v1/payments',
+  '.next/types/app/api/v1/plans',
+  '.next/types/app/api/v1/products',
+  '.next/types/app/api/v1/quotations',
+  '.next/types/app/api/v1/reports',
+  '.next/types/app/api/v1/subscriptions',
+  '.next/types/app/api/v1/tax-rules',
   '.next/types/app/api/v1/audit-logs',
   '.next/types/app/api/v1/auth/forgot-password',
   '.next/types/app/api/v1/auth/login',
