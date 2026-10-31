@@ -219,13 +219,13 @@ export default function LandingPage({ onEnterApp, plans = [] }: LandingPageProps
   ];
 
   return (
-    <div className="w-full min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground flex flex-col overflow-x-hidden">
-      {/* 1. INTERACTIVE FROSTED GLASS TOP NAVIGATION */}
+    <div className="w-full min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground flex flex-col">
+      {/* 1. INTERACTIVE FROSTED GLASS TOP NAVIGATION (FIXED AT TOP - NEVER SCROLLS AWAY) */}
       <header
-        className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
           scrolled
-            ? 'bg-background/80 dark:bg-card/75 backdrop-blur-2xl border-b border-border/80 shadow-md shadow-black/5 dark:shadow-black/25 py-2.5'
-            : 'bg-background/40 dark:bg-background/30 backdrop-blur-md border-b border-border/40 py-3.5'
+            ? 'bg-background/90 dark:bg-card/90 backdrop-blur-2xl border-b border-border/80 shadow-md shadow-black/5 dark:shadow-black/25 py-2.5'
+            : 'bg-background/70 dark:bg-background/60 backdrop-blur-md border-b border-border/40 py-3.5'
         }`}
       >
         <div className="w-full max-w-[1400px] mx-auto flex items-center justify-between px-4 sm:px-8">
@@ -354,7 +354,7 @@ export default function LandingPage({ onEnterApp, plans = [] }: LandingPageProps
       </header>
 
       {/* 2. FULL-SCREEN HERO SECTION */}
-      <section id="hero" className="relative w-full pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
+      <section id="hero" className="relative w-full pt-28 pb-20 md:pt-36 md:pb-28 overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 text-center relative z-10">
           {/* Subtitle Pill */}
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary mb-6 animate-in fade-in duration-300">
