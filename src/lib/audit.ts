@@ -1,6 +1,6 @@
 import prisma from './prisma';
 
-export async function createAuditLog({
+export async function logAuditEvent({
   actorUserId,
   action,
   entityType,
@@ -30,6 +30,6 @@ export async function createAuditLog({
       },
     });
   } catch (error) {
-    console.error('Failed to write audit log:', error);
+    console.error('Audit log write error:', error);
   }
 }
